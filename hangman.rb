@@ -4,6 +4,8 @@ require "sinatra/reloader" if development?
 
 class Hangman
 
+  attr_accessor :display_content
+
   def initialize
     @secret_word = select_word
     @display_content = "_" * @secret_word.length
@@ -29,7 +31,7 @@ class Hangman
     start_game
   end
 
-  private
+  
 
   def save_state
     json_object = { :secret_word => @secret_word, :display_content => @display_content,
@@ -64,6 +66,16 @@ class Hangman
     puts "Game over, the secret word was: #{@secret_word}" if @failed_attemps == 10
   end
 
+  def make_guess(params)
+    if params["string"] != nil
+      update_display(params["string"])
+      if player_won? != nil 
+        @display_content = player_won? + " -> #{display_content}\n" +
+                                         "Enter a letter to guess another word"   
+      end     
+    end
+  end
+
   def select_word
     words = File.readlines("5desk.txt").select { |word| word.length.between?(5, 12) }
     words[rand(words.length)].strip
@@ -85,8 +97,7 @@ class Hangman
 
   def player_won?
     unless @display_content.include?("_")
-      puts "You found the correct word!"
-      true
+      "You found the correct word!"
     end
   end
 
@@ -95,11 +106,11 @@ class Hangman
 
     case @failed_attemps
     when 0
-      puts "  ______"
-      puts "        |"
-      puts "        |"
-      puts "        |"
-      puts "        |"
+       "  ______" +
+       "        |" +
+       "        |" +
+       "        |" +
+       "        |" 
     when 1
       puts "  ______"
       puts " |      |"
@@ -167,9 +178,9 @@ class Hangman
 end
 
 my_game = Hangman.new
-my_game.main_menu
-#We will need to butcher the main loop and the main menu probably, so be it 
-get '/' do
-  #message = CaesarCypher.create_message(params)
-  #erb :index, :locals => {:message => message} 
+
+get '/' do  
+  my_game = Hangman.new unless my_game.display_content.include?("_")
+  my_game.make_guess(params)
+  erb :index, :locals => {:display => my_game.display_content}    
 end

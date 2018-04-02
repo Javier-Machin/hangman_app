@@ -1,22 +1,26 @@
 <html>
   <head>
     <style>
-      #shift {
+      p {
         display: inline-block;
-        width: 35px;
+        font-size: 30px;
+      }
+
+      .main-container {
+        text-align: center;
       }
     </style>
   </head>
   <body>
-    <p>
-      <%= message %>
-    </p>
-    <form>
-      <label>String: </label>
-      <input type='text' name='string' />
-      <label>Shift: </label>
-      <input id="shift" type='text' name='shift' />
-      <input type='submit' value='Encode!' />
-    </form>
+    <div class="main-container">
+      <p>
+        <%= display %>
+      </p>
+      <form>
+        <label>String: </label>
+        <input type='text' name='string' />
+        <input type='submit' value='Guess!' />
+      </form>
+    </div>
   </body>
 </html>
