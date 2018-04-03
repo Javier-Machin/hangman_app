@@ -1,6 +1,10 @@
-require "json"
 require "sinatra"
 require "sinatra/reloader" if development?
+
+configure do
+  enable :sessions
+  set :session_secret, "secret"
+end
 
 class Hangman
 
@@ -12,67 +16,14 @@ class Hangman
     @failed_attemps = 0
   end
 
-  def main_menu
-    option = "3"
-    until option == "1" || option == "2"
-      puts "(1) New game"
-      puts "(2) Load game"
-      print "Play new game or load the saved game? "
-      option = gets.chomp[0]
-      if option == "2" 
-        if File.exist?("saved_state.json")
-          load_state
-        else
-          puts "There is no saved game, save one first"
-          option = "3"
-        end
-      end
-    end
-    start_game
-  end
-
-  
-
-  def save_state
-    json_object = { :secret_word => @secret_word, :display_content => @display_content,
-    	              :failed_attemps => @failed_attemps }.to_json
-    File.open("saved_state.json", "w") { |file| file.write(json_object) }
-  end
-
-  def load_state
-    save_file = File.read("saved_state.json")
-    json_hash = JSON.parse(save_file)
-    @secret_word = json_hash["secret_word"]
-    @display_content = json_hash["display_content"]
-    @failed_attemps = json_hash["failed_attemps"]
-  end
-  
-  def start_game
-    player_won = false
-    while @failed_attemps != 10 
-      puts @display_content
-      puts "#{10 - @failed_attemps.to_i} turns left" 
-      print "Enter a letter or attempt the full word: "
-      letters = gets.chomp
-      if letters == "save"
-        save_state
-        next
-      end
-      break if letters == "exit"
-      update_display(letters) if letters
-      player_won = player_won?
-      break if player_won
-    end
-    puts "Game over, the secret word was: #{@secret_word}" if @failed_attemps == 10
-  end
-
   def make_guess(params)
     if params["string"] != nil
-      update_display(params["string"])
+      toon = update_display(params["string"])
       if player_won? != nil 
-        @display_content = player_won? + " -> #{display_content}\n" +
+        @display_content = player_won? + "#{@secret_word}.\n" +
                                          "Enter a letter to guess another word"   
-      end     
+      end
+      toon      
     end
   end
 
@@ -91,13 +42,14 @@ class Hangman
     else
       @display_content = letters if letters == @secret_word.downcase
     end
-
     current_state == @display_content ? print_toon(1) : print_toon(0)
   end
 
   def player_won?
-    unless @display_content.include?("_")
-      "You found the correct word!"
+    if !@display_content.include?("_")
+      "You found the correct word! " 
+    elsif @failed_attemps == 10
+      "You lost! The word was: "  
     end
   end
 
@@ -105,82 +57,68 @@ class Hangman
     @failed_attemps += increment
 
     case @failed_attemps
-    when 0
-       "  ______" +
-       "        |" +
-       "        |" +
-       "        |" +
-       "        |" 
+
+    when 0 
+      ["|","","","",""]
     when 1
-      puts "  ______"
-      puts " |      |"
-      puts "        |"
-      puts "        |"
-      puts "        |"
+      ["|"," |","","",""] 
     when 2
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts "        |"
-      puts "        |"
+      ["|", " |","(oo)","",""] 
     when 3
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts " |      |"
-      puts "        |"
+      ["|"," |","(oo)"," |",""] 
     when 4
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts " ||     |"
-      puts "        |"  
+      ["|"," |","(oo)"," ||",""]  
     when 5
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts "/||     |"
-      puts "        |"
+      ["|"," |","(oo)","/||",""]
     when 6
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts "/||\\    |"
-      puts "        |"
+      ["|"," |","(oo)","/||\\",""] 
     when 7
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts "/||\\    |"
-      puts "/       |"
+      ["|"," |","(oo)","/||\\","/"]
     when 8
-      puts "  ______"
-      puts " |      |"
-      puts "(oo)    |"
-      puts "/||\\    |"
-      puts "/  \\    |"
+      ["|"," |","(oo)","/||\\","/  \\"]
     when 9
-      puts "  ______"
-      puts " |      |"
-      puts "(ox)    |"
-      puts "/||\\    |"
-      puts "/  \\    |"  
+      ["|"," |","(ox)","/||\\","/  \\"]  
     when 10
-      puts "  ______"
-      puts " |      |"
-      puts "(xx)    |"
-      puts "/||\\    |"
-      puts "/  \\    |"           
+      ["|"," |","(xx)","/||\\","/  \\"]          
     end
-    puts ""
+    
+  end
+
+  def set_new_session(session)
+    session[:secret_word] = @secret_word
+    session[:failed_attemps] = @failed_attemps
+    session[:display_content] = @display_content
+    session
+  end
+
+  def set_current_session(session)
+    @secret_word = session["secret_word"]
+    @failed_attemps = session["failed_attemps"]
+    @display_content = session["display_content"]
   end
 
 end
 
-my_game = Hangman.new
-
-get '/' do  
-  my_game = Hangman.new unless my_game.display_content.include?("_")
-  my_game.make_guess(params)
-  erb :index, :locals => {:display => my_game.display_content}    
+get '/' do 
+  erb :index   
 end
+
+get '/start' do
+  my_game = Hangman.new 
+  @session = session 
+  session = my_game.set_new_session(@session)
+  session["length"] = "Number of letters: #{session["secret_word"].length}"
+  redirect 'play'
+end
+
+get '/play' do
+  my_game = Hangman.new
+  @session = session
+  my_game.set_current_session(@session)
+  redirect 'start' if my_game.player_won? != nil 
+  toon = my_game.make_guess(params)
+  @session = session 
+  session = my_game.set_new_session(@session) 
+  erb :play, :locals => {:display => my_game.display_content, 
+                         :toon => toon, :length => session["length"]}
+end 

@@ -1,0 +1,41 @@
+<html>
+  <head>
+    <style>
+      p {
+        display: block;
+        font-size: 30px;
+      }
+      
+      .main-container {
+        text-align: center;
+        font-size: 30px;
+      }
+
+      #length {
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="main-container">
+      <p>
+        <%= display %>
+      </p>
+      <p id="length">
+        <%= length %>
+      </p>
+      <form>
+        <label>Enter a letter or attempt the full word: </label><br>
+        <input type='text' name='string' />
+        <input type='submit' value='Guess!' />
+      </form>
+      <p>
+        <%= toon[0] if toon != nil %><br>
+        <%= toon[1] if toon != nil %><br>
+        <%= toon[2] if toon != nil %><br>
+        <%= toon[3] if toon != nil %><br>
+        <%= toon[4] if toon != nil %>
+      </p>  
+    </div>
+  </body>
+</html>
